@@ -92,6 +92,7 @@ def residual_function(m, c, x, y):
 def main():
     problem = nopy.LeastSquaresProblem()
     m = np.zeros(1, dtype=np.float64)
+    m[0] = 0.29
     c = np.zeros(1, dtype=np.float64)
 
     data_x = data[::2]
@@ -103,6 +104,7 @@ def main():
     for i in range(len(data_x)):
         partial_residual = partial(residual_function, x=data_x[i], y=data_y[i])
         problem.add_residual_block(1, partial_residual, m, c, loss_func='soft_l1', f_scale=0.1)
+    problem.bound_variable(m, 0.29, 0.3)
     problem.solve()
 
     print('m:', m)

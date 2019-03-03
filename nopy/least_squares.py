@@ -30,6 +30,8 @@ class LeastSquaresProblem:
         self.__x0 = None
         self.__jac_sparsity = None
         self.__fixed_variable_address = set()
+        self.__address_bounds_map = {}
+        self.__bounds = None
 
     def add_residual_block(self, dim_residual, residual_func, *variables, loss_func='linear', f_scale=1.0,
                            jac_func='2-point', jac_sparsity=None):
@@ -127,6 +129,23 @@ class LeastSquaresProblem:
             if address in self.__fixed_variable_address:
                 self.__fixed_variable_address.remove(address)
 
+    def bound_variable(self, variable: np.ndarray, min=-np.inf, max=np.inf):
+        """
+        Lower and upper bounds on independent variable. Defaults to no bounds. 
+        Note that the initial value of a bounded variable must lie in the boundary.
+        :param variable: 
+        :param min: array_like or scalar
+            The array must match the size of variable or be a scalar. -np.inf means no bound.
+        :param max: array_like or scalar
+            The array must match the size of variable or be a scalar. np.inf means no bound.
+        :return: None
+        """
+        address = variable.__array_interface__['data'][0]
+        col_range = self.__address_col_range_map[address]
+        assert np.isscalar(min) or min.shape[0] == col_range[1] - col_range[0]
+        assert np.isscalar(max) or max.shape[0] == col_range[1] - col_range[0]
+        self.__address_bounds_map[address] = (min, max)
+
     def solve(self, method='trf', ftol=1e-8, xtol=1e-8, gtol=1e-8, max_nfev=None, x_scale='jac', verbose=1):
         """
         solve the problem.
@@ -170,9 +189,9 @@ class LeastSquaresProblem:
         :return: OptimizeResult
         """
         self.__initialize()
-        res = scipy.optimize.least_squares(self.__batch_residual, self.__x0, self.__batch_jac, method=method,
-                                           ftol=ftol, xtol=xtol, gtol=gtol, x_scale=x_scale, loss=self.__batch_loss,
-                                           tr_solver='lsmr',
+        res = scipy.optimize.least_squares(self.__batch_residual, self.__x0, self.__batch_jac, bounds=self.__bounds,
+                                           method=method, ftol=ftol, xtol=xtol, gtol=gtol, x_scale=x_scale,
+                                           loss=self.__batch_loss, tr_solver='lsmr',
                                            jac_sparsity=self.__jac_sparsity, max_nfev=max_nfev, verbose=verbose)
         self.__write_back_to_variables(res.x)
         return res
@@ -241,6 +260,15 @@ class LeastSquaresProblem:
         self.__x0 = np.zeros(self.__dim_variable, dtype=np.float64)
         for col_range, x0 in self.__col_range_variable_map.items():
             self.__x0[col_range[0]: col_range[1]] = x0
+
+        # set state bounds
+        self.__bounds = [np.empty(self.__x0.shape, dtype=np.float64), np.empty(self.__x0.shape, dtype=np.float64)]
+        self.__bounds[0][:] = -np.inf
+        self.__bounds[1][:] = np.inf
+        for address, bound in self.__address_bounds_map.items():
+            col_range = self.__address_col_range_map[address]
+            self.__bounds[0][col_range[0]: col_range[1]] = bound[0]
+            self.__bounds[1][col_range[0]: col_range[1]] = bound[1]
 
         # set jacobian sparsity for the whole problem
         self.__jac_sparsity = scipy.sparse.dok_matrix((self.__dim_residual, self.__dim_variable), dtype=int)

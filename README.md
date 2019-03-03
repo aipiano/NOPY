@@ -5,7 +5,7 @@ NOPY is an extension of [scipy.optimize.least_squares](https://docs.scipy.org/do
 It provides a much more flexible and easier-to-use interface than the original scipy.optimize.least_squares. 
 You will love it if you are familiar with [Ceres Solver](http://www.ceres-solver.org/).
 
-NOPY can solve robustified non-linear least squares problems of the form
+NOPY can solve robustified non-linear least squares problems with bounds of the form
 
 ![Cost Function](./imgs/cost.png)
 
@@ -61,6 +61,17 @@ and unfix them with
 ```python
 problem.unfix_variables(x1)
 ```
+
+For variable bounding, just call
+```python
+problem.bound_variable(x1, 0, 1)
+```
+
+and unbound it with
+```python
+problem.bound_variable(x1, -np.inf, np.inf)
+```
+Note that the initial value of a bounded variable must lie in the boundary.
 
 NOPY support robust loss functions. You can specify loss function for each residual block, like bellow
 ```python
