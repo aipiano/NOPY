@@ -12,6 +12,14 @@ NOPY can solve robustified non-linear least squares problems with bounds of the 
 The expression ![residual block](./imgs/residual_block.png) is known as a residual block, where ![fi](./imgs/fi.png)
  is a residual function that depends on one or more variables ![variables](./imgs/variables.png).
  
+## Installation
+
+```
+git clone https://github.com/aipiano/NOPY.git
+cd NOPY
+pip install .
+```
+
 ## Example
 We wanna minimize the following naive cost function
 
