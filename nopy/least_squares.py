@@ -93,6 +93,7 @@ class LeastSquaresProblem:
         residual_block.col_ranges = []
         residual_block.dim_variable = 0
         for variable in variables:
+            assert len(variable.shape) == 1
             dim = variable.shape[0]
             residual_block.dim_variable += dim
 
